@@ -17,5 +17,10 @@ return {
       right_pad = 1,
       highlight = "render-markdownBullet",
     },
+    code = {
+      -- diagram.nvim overlays an image on top of mermaid blocks; leaving the
+      -- background and language heading on would show through underneath it.
+      disable = { "mermaid" },
+    },
   },
 }
