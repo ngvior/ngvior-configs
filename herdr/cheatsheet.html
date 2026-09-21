@@ -1,0 +1,751 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Herdr Cheatsheet</title>
+<style>
+/* ─── Design system: Aura palette, as resolved by `ghostty +show-config` ─── */
+:root {
+  --bg:        #15141b;  /* Aura background          */
+  --bg-sunken: #110f18;  /* palette 0                */
+  --surface:   #1c1b26;  /* derived: raised card      */
+  --surface-2: #232230;  /* derived: keycap face      */
+  --line:      #2b2937;  /* derived: hairline border  */
+  --fg:        #edecee;  /* Aura foreground          */
+  --fg-dim:    #9d9aa8;  /* derived                   */
+  --fg-mute:   #4d4d4d;  /* palette 8                 */
+
+  --purple:    #a277ff;  /* palette 4 — Aura signature */
+  --mint:      #61ffca;  /* palette 2                  */
+  --gold:      #ffca85;  /* palette 3                  */
+  --red:       #ff6767;  /* palette 1                  */
+  --divider:   #7af1d3;  /* split-divider-color        */
+  --cursor:    #e0c15a;  /* cursor-color               */
+
+  /* Semantic roles: colour encodes HOW a binding is reached, not what it does. */
+  --role-direct: var(--mint);    /* no prefix — the fast lane */
+  --role-prefix: var(--purple);  /* goes through prefix mode   */
+  --role-index:  var(--gold);    /* numeric / indexed          */
+  --role-danger: var(--red);     /* destructive                */
+  --role-mode:   var(--divider); /* only live inside a mode     */
+
+  --mono: "IosevkaTerm NF", "JetBrainsMono Nerd Font", "JetBrains Mono",
+          ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --radius: 10px;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html { scrollbar-color: var(--line) transparent; }
+
+body {
+  margin: 0;
+  padding: 0 clamp(16px, 4vw, 40px) 64px;
+  background:
+    radial-gradient(1100px 620px at 12% -12%, #241d3d 0%, transparent 62%),
+    radial-gradient(820px 520px at 92% 4%, #14322c 0%, transparent 58%),
+    var(--bg);
+  background-attachment: fixed;
+  color: var(--fg);
+  font-family: var(--mono);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ─── Header ─── */
+.masthead {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  margin: 0 clamp(-40px, -4vw, -16px);
+  padding: 22px clamp(16px, 4vw, 40px) 16px;
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--line);
+}
+
+.title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px 16px;
+}
+
+h1 {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+h1 .accent { color: var(--purple); }
+
+.prefix-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--fg-dim);
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 18px;
+  margin-top: 14px;
+}
+
+.search-wrap { position: relative; flex: 1 1 260px; max-width: 420px; }
+
+#search {
+  width: 100%;
+  padding: 9px 68px 9px 32px;
+  background: var(--bg-sunken);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  color: var(--fg);
+  font: inherit;
+  transition: border-color .15s, box-shadow .15s;
+}
+#search::placeholder { color: var(--fg-mute); }
+#search:focus {
+  outline: none;
+  border-color: var(--purple);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--purple) 22%, transparent);
+}
+
+.search-icon {
+  position: absolute;
+  left: 11px; top: 50%;
+  transform: translateY(-50%);
+  color: var(--fg-mute);
+  pointer-events: none;
+}
+
+.search-hint {
+  position: absolute;
+  right: 9px; top: 50%;
+  transform: translateY(-50%);
+  font-size: 11px;
+  color: var(--fg-mute);
+  pointer-events: none;
+}
+#search:focus ~ .search-hint,
+#search:not(:placeholder-shown) ~ .search-hint { opacity: 0; }
+
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 11.5px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; color: var(--fg-dim); }
+.legend i {
+  width: 9px; height: 9px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 9px currentColor;
+}
+.sw-direct { color: var(--role-direct); }
+.sw-prefix { color: var(--role-prefix); }
+.sw-index  { color: var(--role-index); }
+.sw-danger { color: var(--role-danger); }
+
+/* ─── Grid ─── */
+/* Multi-column instead of grid: cards have very uneven heights, and a grid
+   leaves large dead gaps under the short ones. Columns pack them tightly. */
+.grid {
+  columns: 340px 3;
+  column-gap: 16px;
+  margin-top: 22px;
+}
+
+.card {
+  background: color-mix(in srgb, var(--surface) 82%, transparent);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+  break-inside: avoid;
+  margin-bottom: 16px;
+}
+
+.card > h2 {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 0;
+  padding: 12px 14px;
+  font-size: 12.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--fg);
+  border-bottom: 1px solid var(--line);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--bg-sunken) 55%, transparent), transparent);
+}
+.card > h2::before {
+  content: "";
+  width: 3px; height: 15px;
+  border-radius: 2px;
+  background: var(--accent, var(--purple));
+  box-shadow: 0 0 10px var(--accent, var(--purple));
+}
+
+/* A mode card's bindings only exist while that mode is open. */
+.mode-tag {
+  margin-left: auto;
+  padding: 2px 7px;
+  border-radius: 99px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: none;
+  color: var(--role-mode);
+  background: color-mix(in srgb, var(--role-mode) 13%, transparent);
+  border: 1px solid color-mix(in srgb, var(--role-mode) 34%, transparent);
+}
+
+.rows { padding: 5px 0; }
+
+.row {
+  display: grid;
+  grid-template-columns: minmax(120px, auto) 1fr;
+  gap: 6px 12px;
+  align-items: baseline;
+  padding: 6px 14px;
+  border-left: 2px solid transparent;
+}
+.row:hover {
+  background: color-mix(in srgb, var(--purple) 7%, transparent);
+  border-left-color: var(--purple);
+}
+/* An author `display` beats the UA stylesheet's [hidden] rule, so the filter
+   needs this explicitly or hiding a row does nothing. */
+.row[hidden], .card[hidden] { display: none; }
+
+.keys { display: flex; flex-wrap: wrap; align-items: center; gap: 3px; }
+
+kbd {
+  display: inline-block;
+  padding: 2px 6px;
+  min-width: 20px;
+  text-align: center;
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.45;
+  color: var(--fg);
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-bottom-width: 2px;
+  border-radius: 5px;
+  white-space: nowrap;
+}
+kbd.prefix {
+  color: var(--role-prefix);
+  border-color: color-mix(in srgb, var(--role-prefix) 42%, transparent);
+  background: color-mix(in srgb, var(--role-prefix) 12%, var(--surface-2));
+  cursor: help;
+}
+kbd.n {
+  color: var(--role-index);
+  border-color: color-mix(in srgb, var(--role-index) 42%, transparent);
+  background: color-mix(in srgb, var(--role-index) 12%, var(--surface-2));
+}
+.sep { color: var(--fg-mute); font-size: 11px; padding: 0 1px; }
+/* Ranges need more weight than a plain separator: a faint dot between two
+   keycaps does not read as "1 through 9". */
+.sep.range { color: var(--role-index); font-size: 13px; font-weight: 700; padding: 0 3px; }
+.desc { color: var(--fg-dim); font-size: 13px; }
+
+/* A direct row is reachable without the prefix — the fast path. */
+.row.direct .keys kbd:not(.prefix):not(.n) {
+  color: var(--role-direct);
+  border-color: color-mix(in srgb, var(--role-direct) 40%, transparent);
+  background: color-mix(in srgb, var(--role-direct) 11%, var(--surface-2));
+}
+.row.danger .desc::after {
+  content: "destructive";
+  margin-left: 8px;
+  padding: 1px 6px;
+  border-radius: 99px;
+  font-size: 10px;
+  color: var(--role-danger);
+  background: color-mix(in srgb, var(--role-danger) 13%, transparent);
+  border: 1px solid color-mix(in srgb, var(--role-danger) 32%, transparent);
+}
+/* Secondary path for an action that already has a faster binding above.
+   Deliberately no ::before label here — any word placed next to the keycaps
+   reads as another key. The dimming plus "fallback" in the text is enough. */
+.row.alt { opacity: .6; }
+
+.note {
+  margin: 4px 14px 10px;
+  padding: 9px 11px;
+  border-left: 2px solid var(--cursor);
+  border-radius: 0 6px 6px 0;
+  background: color-mix(in srgb, var(--cursor) 8%, transparent);
+  font-size: 12px;
+  color: var(--fg-dim);
+}
+.note b { color: var(--cursor); font-weight: 600; }
+
+.empty {
+  display: none;
+  margin-top: 40px;
+  text-align: center;
+  color: var(--fg-dim);
+}
+.empty kbd { margin: 0 2px; }
+body.no-results .empty { display: block; }
+body.no-results .grid { display: none; }
+
+footer {
+  margin-top: 34px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+  font-size: 11.5px;
+  color: var(--fg-mute);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 20px;
+}
+footer code { color: var(--fg-dim); }
+
+@media (max-width: 560px) {
+  .row { grid-template-columns: 1fr; gap: 3px; }
+  .legend { display: none; }
+}
+
+@media print {
+  body { background: #fff; color: #000; padding: 0; }
+  .masthead { position: static; background: none; border-color: #ccc; }
+  .controls, .search-wrap, .empty { display: none; }
+  .grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .card { background: none; border-color: #ccc; break-inside: avoid; }
+  .card > h2 { background: none; color: #000; }
+  kbd, kbd.prefix, kbd.n, .row.direct .keys kbd { background: #f2f2f2; color: #000; border-color: #999; }
+  .desc, .note, footer { color: #333; }
+}
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <div class="title-row">
+    <h1>Herdr <span class="accent">Cheatsheet</span></h1>
+    <span class="prefix-note">
+      prefix &nbsp;<kbd>ctrl</kbd><span class="sep">+</span><kbd>space</kbd>
+      &nbsp;&middot;&nbsp; press, release, then the next key
+    </span>
+  </div>
+  <div class="controls">
+    <div class="search-wrap">
+      <span class="search-icon">&#9906;</span>
+      <input id="search" type="search" placeholder="Filter bindings…" autocomplete="off" spellcheck="false">
+      <span class="search-hint"><kbd>/</kbd></span>
+    </div>
+    <div class="legend">
+      <span class="sw-direct"><i></i>direct, no prefix</span>
+      <span class="sw-prefix"><i></i>via prefix</span>
+      <span class="sw-index"><i></i>numeric</span>
+      <span class="sw-danger"><i></i>destructive</span>
+    </div>
+  </div>
+</header>
+
+<main class="grid">
+
+  <!-- ── Panes ── -->
+  <section class="card" style="--accent: var(--mint)">
+    <h2>Panes</h2>
+    <div class="rows">
+      <div class="row direct">
+        <span class="keys"><kbd>alt</kbd><span class="sep">+</span><kbd>h</kbd><kbd>j</kbd><kbd>k</kbd><kbd>l</kbd></span>
+        <span class="desc">Focus pane left / down / up / right</span>
+      </div>
+      <div class="row alt">
+        <span class="keys"><kbd class="prefix" title="ctrl+space">prefix</kbd><span class="sep">+</span><kbd>h</kbd><kbd>j</kbd><kbd>k</kbd><kbd>l</kbd></span>
+        <span class="desc">Focus pane, prefix fallback</span>
+      </div>
+      <div class="row direct">
+        <span class="keys"><kbd>alt</kbd><span class="sep">+</span><kbd>v</kbd></span>
+        <span class="desc">Split right (vertical)</span>
+      </div>
+      <div class="row direct">
+        <span class="keys"><kbd>alt</kbd><span class="sep">+</span><kbd>d</kbd></span>
+        <span class="desc">Split down (horizontal)</span>
+      </div>
+      <div class="row alt">
+        <span class="keys"><kbd class="prefix" title="ctrl+space">prefix</kbd><span class="sep">+</span><kbd>v</kbd><span class="sep">/</span><kbd>-</kbd></span>
+        <span class="desc">Split right / down, prefix fallback</span>
+      </div>
+      <div class="row">
+        <span class="keys"><kbd class="prefix" title="ctrl+space">prefix</kbd><span class="sep">+</span><kbd>space</kbd></span>
+        <span class="desc">Last pane — back and forth</span>
+      </div>
+      <div class="row">
+        <span class="keys"><kbd class="prefix" title="ctrl+space">prefix</kbd><span class="sep">+</span><kbd>tab</kbd></span>
+        <span class="desc">Cycle to next pane</span>
+      </div>
+      <div class="row">
+        <span class="keys"><kbd class="prefix" title="ctrl+space">prefix</kbd><span class="sep">+</span><kbd>shift</kbd><span class="sep">+</span><kbd>tab</kbd></span>
+        <span class="desc">Cycle to previous pane</span>
+      </div>
+      <div class="row">
+        <span class="keys"><kbd class="prefix" title="ctrl+space">prefix</kbd><span class="sep">+</span><kbd>z</kbd></span>
+        <span class="desc">Zoom / unzoom focused pane</span>
+      </div>
+      <div class="row">
+        <span class="keys"><kbd class="prefix" title="ctrl+space">prefix</kbd><span class="sep">+</span><kbd>shift</kbd><span class="sep">+</span><kbd>h</kbd><kbd>j</kbd><kbd>k</kbd><kbd>l</kbd></span>
+        <span class="desc">Swap pane in that direction</span>
+      </div>
+      <div class="row">
+        <span class="keys"><kbd class="prefix" title="ctrl+space">prefix</kbd><span class="sep">+</span><kbd>shift</kbd><span class="sep">+</span><kbd>p</kbd></span>
+        <span class="desc">Rename pane</span>
+      </div>
+      <div class="row">
+        <span class="keys"><kbd class="prefix" title="ctrl+space">prefix</kbd><span class="sep">+</span><kbd>e</kbd></span>
+        <span class="desc">Edit scrollback in $EDITOR</span>
+      </div>
+      <div class="row danger">
+        <span class="keys"><kbd class="prefix" title="ctrl+space">prefix</kbd><span class="sep">+</span><kbd>x</kbd></span>
+        <span class="desc">Close pane</span>
+      </div>
+    </div>
+    <p class="note"><b>ctrl+w is not bound here on purpose.</b> It stays
+    unix-word-rubout inside panes, which is worth more than a second way to
+    close things.</p>
+  </section>
+
+  <!-- ── Tabs ── -->
+  <section class="card" style="--accent: var(--gold)">
+    <h2>Tabs</h2>
+    <div class="rows">
+      <div class="row direct">
+        <span class="keys"><kbd>ctrl</kbd><span class="sep">+</span><kbd>t</kbd></span>
+        <span class="desc">New tab</span>
+      </div>
+      <div class="row direct">
+        <span class="keys"><kbd>ctrl</kbd><span class="sep">+</span><kbd class="n">1</kbd><span class="sep range">–</span><kbd class="n">9</kbd></span>
+        <span class="desc">Go to tab N</span>
+      </div>
+      <div class="row direct">
+        <span class="keys"><kbd>ctrl</kbd><span class="sep">+</span><kbd>tab</kbd></span>
+        <span class="desc">Next tab</span>
+      </div>
+      <div class="row direct">
+        <span class="keys"><kbd>ctrl</kbd><span class="sep">+</span><kbd>shift</kbd><span class="sep">+</span><kbd>tab</kbd></span>
+        <span class="desc">Previous tab</span>
+      </div>
+      <div class="row alt">
+        <span class="keys"><kbd class="prefix" title="ctrl+space">prefix</kbd><span class="sep">+</span><kbd>c</kbd></span>
+        <span class="desc">New tab, prefix fallback</span>
+      </div>
+      <div class="row alt">
+        <span class="keys"><kbd class="prefix" title="ctrl+space">prefix</kbd><span class="sep">+</span><kbd>n</kbd><span class="sep">/</span><kbd>p</kbd></span>
+        <span class="desc">Next / previous tab, prefix fallback</span>
+      </div>
+      <div class="row">
+        <span class="keys"><kbd class="prefix" title="ctrl+space">prefix</kbd><span class="sep">+</span><kbd>shift</kbd><span class="sep">+</span><kbd>t</kbd></span>
+        <span class="desc">Rename tab</span>
+      </div>
+      <div class="row danger">
+        <span class="keys"><kbd class="prefix" title="ctrl+space">prefix</kbd><span class="sep">+</span><kbd>shift</kbd><span class="sep">+</span><kbd>x</kbd></span>
+        <span class="desc">Close tab</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Workspaces ── -->
+  <section class="card" style="--accent: var(--purple)">
+    <h2>Workspaces</h2>
+    <div class="rows">
+      <div class="row direct">
+        <span class="keys"><kbd>ctrl</kbd><span class="sep">+</span><kbd>alt</kbd><span class="sep">+</span><kbd>l</kbd></span>
+        <span class="desc">Next workspace</span>
+      </div>
+      <div class="row direct">
+        <span class="keys"><kbd>ctrl</kbd><span class="sep">+</span><kbd>alt</kbd><span class="sep">+</span><kbd>h</kbd></span>
+        <span class="desc">Previous workspace</span>
+      </div>
+      <div class="row">
+        <span class="keys"><kbd class="prefix" title="ctrl+space">prefix</kbd><span class="sep">+</span><kbd class="n">1</kbd><span class="sep range">–</span><kbd class="n">9</kbd></span>
+        <span class="desc">Go to workspace N — positional, not the workspace id</span>
+      </div>
+      <div class="row">
+        <span class="keys"><kbd class="prefix" title="ctrl+space">prefix</kbd><span class="sep">+</span><kbd>w</kbd></span>
+        <span class="desc">Workspace picker</span>
+      </div>
+      <div class="row">
+        <span class="keys"><kbd class="prefix" title="ctrl+space">prefix</kbd><span class="sep">+</span><kbd>g</kbd></span>
+        <span class="desc">Goto — opens navigate mode</span>
+      </div>
+      <div class="row">
+        <span class="keys"><kbd class="prefix" title="ctrl+space">prefix</kbd><span class="sep">+</span><kbd>b</kbd></span>
+        <span class="desc">Toggle sidebar</span>
+      </div>
+      <div class="row">
+        <span class="keys"><kbd class="prefix" title="ctrl+space">prefix</kbd><span class="sep">+</span><kbd>shift</kbd><span class="sep">+</span><kbd>n</kbd></span>
+        <span class="desc">New workspace</span>
+      </div>
+      <div class="row">
+        <span class="keys"><kbd class="prefix" title="ctrl+space">prefix</kbd><span class="sep">+</span><kbd>shift</kbd><span class="sep">+</span><kbd>w</kbd></span>
+        <span class="desc">Rename workspace</span>
+      </div>
+      <div class="row danger">
+        <span class="keys"><kbd class="prefix" title="ctrl+space">prefix</kbd><span class="sep">+</span><kbd>shift</kbd><span class="sep">+</span><kbd>d</kbd></span>
+        <span class="desc">Close workspace</span>
+      </div>
+    </div>
+    <p class="note"><b>No index ever uses shift.</b> This keyboard is
+    <code>es,latam</code>, where shifted digits produce different characters than
+    US — <code>shift+6</code> sends <code>&amp;</code>, which Herdr reads as US
+    <code>shift+7</code>. So the three scales use a plain digit:
+    <code>ctrl+N</code> tab, <code>prefix+N</code> workspace,
+    <code>prefix+alt+N</code> agent.</p>
+  </section>
+
+  <!-- ── Agents ── -->
+  <section class="card" style="--accent: var(--divider)">
+    <h2>Agents</h2>
+    <div class="rows">
+      <div class="row direct">
+        <span class="keys"><kbd>ctrl</kbd><span class="sep">+</span><kbd>alt</kbd><span class="sep">+</span><kbd>j</kbd></span>
+        <span class="desc">Next agent — across all workspaces</span>
+      </div>
+      <div class="row direct">
+        <span class="keys"><kbd>ctrl</kbd><span class="sep">+</span><kbd>alt</kbd><span class="sep">+</span><kbd>k</kbd></span>
+        <span class="desc">Previous agent</span>
+      </div>
+      <div class="row">
+        <span class="keys"><kbd class="prefix" title="ctrl+space">prefix</kbd><span class="sep">+</span><kbd>alt</kbd><span class="sep">+</span><kbd class="n">1</kbd><span class="sep range">–</span><kbd class="n">9</kbd></span>
+        <span class="desc">Focus agent N in the sidebar</span>
+      </div>
+      <div class="row">
+        <span class="keys"><kbd class="prefix" title="ctrl+space">prefix</kbd><span class="sep">+</span><kbd>o</kbd></span>
+        <span class="desc">Open notification target</span>
+      </div>
+    </div>
+    <p class="note"><b>Two axes, one mnemonic.</b> <code>alt+hjkl</code> moves
+    between panes inside a tab. <code>ctrl+alt+hjkl</code> moves between agents
+    and workspaces — same directions, one modifier up, one scale up.</p>
+  </section>
+
+  <!-- ── Worktrees ── -->
+  <section class="card" style="--accent: var(--gold)">
+    <h2>Worktrees</h2>
+    <div class="rows">
+      <div class="row">
+        <span class="keys"><kbd class="prefix" title="ctrl+space">prefix</kbd><span class="sep">+</span><kbd>shift</kbd><span class="sep">+</span><kbd>g</kbd></span>
+        <span class="desc">New git worktree as a workspace</span>
+      </div>
+      <div class="row">
+        <span class="keys"><kbd class="prefix" title="ctrl+space">prefix</kbd><span class="sep">+</span><kbd>shift</kbd><span class="sep">+</span><kbd>o</kbd></span>
+        <span class="desc">Open an existing worktree</span>
+      </div>
+      <div class="row danger">
+        <span class="keys"><kbd class="prefix" title="ctrl+space">prefix</kbd><span class="sep">+</span><kbd>shift</kbd><span class="sep">+</span><kbd>k</kbd></span>
+        <span class="desc">Remove worktree — asks to confirm</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Session ── -->
+  <section class="card" style="--accent: var(--purple)">
+    <h2>Session</h2>
+    <div class="rows">
+      <div class="row">
+        <span class="keys"><kbd class="prefix" title="ctrl+space">prefix</kbd><span class="sep">+</span><kbd>/</kbd></span>
+        <span class="desc">This cheatsheet, as an overlay</span>
+      </div>
+      <div class="row">
+        <span class="keys"><kbd class="prefix" title="ctrl+space">prefix</kbd><span class="sep">+</span><kbd>?</kbd></span>
+        <span class="desc">Built-in help overlay</span>
+      </div>
+      <div class="row">
+        <span class="keys"><kbd class="prefix" title="ctrl+space">prefix</kbd><span class="sep">+</span><kbd>s</kbd></span>
+        <span class="desc">Settings</span>
+      </div>
+      <div class="row">
+        <span class="keys"><kbd class="prefix" title="ctrl+space">prefix</kbd><span class="sep">+</span><kbd>shift</kbd><span class="sep">+</span><kbd>r</kbd></span>
+        <span class="desc">Reload config.toml</span>
+      </div>
+      <div class="row">
+        <span class="keys"><kbd class="prefix" title="ctrl+space">prefix</kbd><span class="sep">+</span><kbd>q</kbd></span>
+        <span class="desc">Detach — agents keep running</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Copy mode ── -->
+  <section class="card" style="--accent: var(--divider)">
+    <h2>Copy <span class="mode-tag">prefix + [</span></h2>
+    <div class="rows">
+      <div class="row">
+        <span class="keys"><kbd>h</kbd><kbd>j</kbd><kbd>k</kbd><kbd>l</kbd></span>
+        <span class="desc">Move cursor</span>
+      </div>
+      <div class="row">
+        <span class="keys"><kbd>w</kbd><kbd>b</kbd><kbd>e</kbd></span>
+        <span class="desc">Word forward / back / end</span>
+      </div>
+      <div class="row">
+        <span class="keys"><kbd>{</kbd><kbd>}</kbd></span>
+        <span class="desc">Paragraph up / down</span>
+      </div>
+      <div class="row">
+        <span class="keys"><kbd>/</kbd><span class="sep">/</span><kbd>?</kbd></span>
+        <span class="desc">Search forward / backward</span>
+      </div>
+      <div class="row">
+        <span class="keys"><kbd>v</kbd><span class="sep">/</span><kbd>space</kbd></span>
+        <span class="desc">Start selection</span>
+      </div>
+      <div class="row">
+        <span class="keys"><kbd>y</kbd><span class="sep">/</span><kbd>enter</kbd></span>
+        <span class="desc">Copy selection and exit</span>
+      </div>
+      <div class="row">
+        <span class="keys"><kbd>esc</kbd></span>
+        <span class="desc">Exit copy mode</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Navigate mode ── -->
+  <section class="card" style="--accent: var(--divider)">
+    <h2>Navigate <span class="mode-tag">prefix + g</span></h2>
+    <div class="rows">
+      <div class="row">
+        <span class="keys"><kbd>&uarr;</kbd><kbd>&darr;</kbd></span>
+        <span class="desc">Move between workspaces</span>
+      </div>
+      <div class="row">
+        <span class="keys"><kbd>h</kbd><kbd>j</kbd><kbd>k</kbd><kbd>l</kbd></span>
+        <span class="desc">Move between panes</span>
+      </div>
+      <div class="row">
+        <span class="keys"><kbd class="n">1</kbd><span class="sep range">–</span><kbd class="n">9</kbd></span>
+        <span class="desc">Jump by index</span>
+      </div>
+      <div class="row">
+        <span class="keys"><kbd>enter</kbd><span class="sep">/</span><kbd>esc</kbd></span>
+        <span class="desc">Accept / cancel</span>
+      </div>
+    </div>
+    <p class="note"><b>Stays open.</b> Unlike prefix mode, navigate mode does not
+    close after one key — you keep moving without re-pressing the prefix.</p>
+  </section>
+
+  <!-- ── Resize mode ── -->
+  <section class="card" style="--accent: var(--divider)">
+    <h2>Resize <span class="mode-tag">prefix + r</span></h2>
+    <div class="rows">
+      <div class="row">
+        <span class="keys"><kbd>h</kbd><kbd>j</kbd><kbd>k</kbd><kbd>l</kbd></span>
+        <span class="desc">Grow / shrink the focused split</span>
+      </div>
+      <div class="row">
+        <span class="keys"><kbd>esc</kbd></span>
+        <span class="desc">Exit resize mode</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Ghostty ── -->
+  <section class="card" style="--accent: var(--red)">
+    <h2>Ghostty <span class="mode-tag">outer layer</span></h2>
+    <div class="rows">
+      <div class="row">
+        <span class="keys"><kbd>ctrl</kbd><span class="sep">+</span><kbd>shift</kbd><span class="sep">+</span><kbd>t</kbd></span>
+        <span class="desc">New Ghostty tab — escape hatch if the Herdr server is down</span>
+      </div>
+      <div class="row">
+        <span class="keys"><kbd>ctrl</kbd><span class="sep">+</span><kbd>w</kbd></span>
+        <span class="desc">Delete previous word — never claimed by Herdr</span>
+      </div>
+      <div class="row">
+        <span class="keys"><kbd>ctrl</kbd><span class="sep">+</span><kbd>shift</kbd><span class="sep">+</span><kbd>c</kbd><span class="sep">/</span><kbd>v</kbd></span>
+        <span class="desc">Copy / paste</span>
+      </div>
+      <div class="row">
+        <span class="keys"><kbd>ctrl</kbd><span class="sep">+</span><kbd>shift</kbd><span class="sep">+</span><kbd>f</kbd></span>
+        <span class="desc">Search Ghostty scrollback</span>
+      </div>
+      <div class="row">
+        <span class="keys"><kbd>ctrl</kbd><span class="sep">+</span><kbd>,</kbd></span>
+        <span class="desc">Open Ghostty config</span>
+      </div>
+      <div class="row">
+        <span class="keys"><kbd>ctrl</kbd><span class="sep">+</span><kbd>shift</kbd><span class="sep">+</span><kbd>,</kbd></span>
+        <span class="desc">Reload Ghostty config</span>
+      </div>
+      <div class="row">
+        <span class="keys"><kbd>super</kbd><span class="sep">+</span><kbd>space</kbd></span>
+        <span class="desc">Input source switch (ibus) — why the prefix is not here</span>
+      </div>
+    </div>
+    <p class="note"><b>Ghostty is a dumb window.</b> Its tabs and splits are
+    unbound so Herdr owns all layout. Ghostty tabs are not persistent, carry no
+    agent state, and do not survive a detach.</p>
+  </section>
+
+</main>
+
+<p class="empty">No binding matches that. <kbd>esc</kbd> to clear.</p>
+
+<footer>
+  <span>Herdr 0.7.5 &middot; Ghostty 1.3.1 &middot; Aura palette</span>
+  <span><code>~/.config/herdr/config.toml</code></span>
+  <span><code>~/.config/ghostty/config</code></span>
+</footer>
+
+<script>
+const search = document.getElementById('search');
+const rows = [...document.querySelectorAll('.row')];
+const cards = [...document.querySelectorAll('.card')];
+
+// Index once: keys are read from the kbd text so the search matches what you see.
+for (const row of rows) {
+  const keys = [...row.querySelectorAll('kbd')].map(k => k.textContent).join(' ');
+  const card = row.closest('.card').querySelector('h2').textContent;
+  // A "1 – 9" range is drawn with an en dash, which nobody types. Index the
+  // notations people actually reach for instead.
+  const range = row.querySelector('.sep.range') ? '1-9 1..9 number' : '';
+  row.dataset.hay =
+    `${keys} ${row.querySelector('.desc').textContent} ${card} ${range}`.toLowerCase();
+}
+
+function applyFilter(raw) {
+  // '+' splits like whitespace, so typing a chord the way you press it
+  // ("ctrl+alt+j") matches a row indexed as "ctrl alt j".
+  const terms = raw.toLowerCase().split(/[\s+]+/).filter(Boolean);
+  let hits = 0;
+
+  for (const row of rows) {
+    const show = terms.every(t => row.dataset.hay.includes(t));
+    row.hidden = !show;
+    if (show) hits++;
+  }
+  // Hide a card once every row inside it is filtered out.
+  for (const card of cards) {
+    card.hidden = !card.querySelector('.row:not([hidden])');
+  }
+  document.body.classList.toggle('no-results', terms.length > 0 && hits === 0);
+}
+
+search.addEventListener('input', () => applyFilter(search.value));
+
+document.addEventListener('keydown', e => {
+  if (e.key === '/' && document.activeElement !== search) {
+    e.preventDefault();
+    search.focus();
+    search.select();
+  } else if (e.key === 'Escape') {
+    search.value = '';
+    applyFilter('');
+    search.blur();
+  }
+});
+</script>
+
+</body>
+</html>
