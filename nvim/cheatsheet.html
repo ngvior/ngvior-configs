@@ -1,0 +1,780 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Neovim Cheatsheet</title>
+<style>
+/* ─── Design system: Aura palette, as defined by aura-theme's own core.lua ─── */
+:root {
+  --bg:        #15141b;  /* aura black       */
+  --bg-sunken: #110f18;  /* derived: sunken  */
+  --surface:   #1c1b26;  /* derived: card    */
+  --surface-2: #21202e;  /* aura-soft-dark black — keycap face */
+  --line:      #2b2937;  /* derived: hairline */
+  --fg:        #edecee;  /* aura white       */
+  --fg-dim:    #9d9aa8;  /* derived          */
+  --fg-mute:   #6d6d6d;  /* aura gray        */
+
+  --purple:    #a277ff;  /* aura signature   */
+  --mint:      #61ffca;  /* aura green       */
+  --gold:      #ffca85;  /* aura orange      */
+  --red:       #ff6767;  /* aura red         */
+  --blue:      #82e2ff;  /* aura blue        */
+  --pink:      #f694ff;  /* aura pink        */
+
+  /* Semantic roles: colour encodes WHERE a key works, not what it does. */
+  --role-direct: var(--mint);    /* normal mode, no leader — the fast lane */
+  --role-leader: var(--purple);  /* goes through <leader> (space)          */
+  --role-mode:   var(--gold);    /* only live inside insert / visual       */
+  --role-ex:     var(--blue);    /* an ex command, typed after `:`         */
+  --role-danger: var(--red);     /* destructive or irreversible            */
+
+  --mono: "IosevkaTerm NF", "JetBrainsMono Nerd Font", "JetBrains Mono",
+          ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --radius: 10px;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html { scrollbar-color: var(--line) transparent; }
+
+body {
+  margin: 0;
+  padding: 0 clamp(16px, 4vw, 40px) 64px;
+  background:
+    radial-gradient(1100px 620px at 12% -12%, #241d3d 0%, transparent 62%),
+    radial-gradient(820px 520px at 92% 4%, #14322c 0%, transparent 58%),
+    var(--bg);
+  background-attachment: fixed;
+  color: var(--fg);
+  font-family: var(--mono);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ─── Header ─── */
+.masthead {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  margin: 0 clamp(-40px, -4vw, -16px);
+  padding: 22px clamp(16px, 4vw, 40px) 16px;
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--line);
+}
+
+.title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px 16px;
+}
+
+h1 {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+h1 .accent { color: var(--purple); }
+
+.prefix-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--fg-dim);
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 18px;
+  margin-top: 14px;
+}
+
+.search-wrap { position: relative; flex: 1 1 260px; max-width: 420px; }
+
+#search {
+  width: 100%;
+  padding: 9px 68px 9px 32px;
+  background: var(--bg-sunken);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  color: var(--fg);
+  font: inherit;
+  transition: border-color .15s, box-shadow .15s;
+}
+#search::placeholder { color: var(--fg-mute); }
+#search:focus {
+  outline: none;
+  border-color: var(--purple);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--purple) 22%, transparent);
+}
+
+.search-icon {
+  position: absolute;
+  left: 11px; top: 50%;
+  transform: translateY(-50%);
+  color: var(--fg-mute);
+  pointer-events: none;
+}
+
+.search-hint {
+  position: absolute;
+  right: 9px; top: 50%;
+  transform: translateY(-50%);
+  font-size: 11px;
+  color: var(--fg-mute);
+  pointer-events: none;
+}
+#search:focus ~ .search-hint,
+#search:not(:placeholder-shown) ~ .search-hint { opacity: 0; }
+
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 11.5px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; color: var(--fg-dim); }
+.legend i {
+  width: 9px; height: 9px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 9px currentColor;
+}
+.sw-direct { color: var(--role-direct); }
+.sw-leader { color: var(--role-leader); }
+.sw-mode   { color: var(--role-mode); }
+.sw-danger { color: var(--role-danger); }
+
+/* ─── Grid ─── */
+/* Multi-column instead of grid: cards have very uneven heights, and a grid
+   leaves large dead gaps under the short ones. Columns pack them tightly. */
+.grid {
+  columns: 340px 3;
+  column-gap: 16px;
+  margin-top: 22px;
+}
+
+.card {
+  background: color-mix(in srgb, var(--surface) 82%, transparent);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+  break-inside: avoid;
+  margin-bottom: 16px;
+}
+
+.card > h2 {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 0;
+  padding: 12px 14px;
+  font-size: 12.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--fg);
+  border-bottom: 1px solid var(--line);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--bg-sunken) 55%, transparent), transparent);
+}
+.card > h2::before {
+  content: "";
+  width: 3px; height: 15px;
+  border-radius: 2px;
+  background: var(--accent, var(--purple));
+  box-shadow: 0 0 10px var(--accent, var(--purple));
+}
+
+.mode-tag {
+  margin-left: auto;
+  padding: 2px 7px;
+  border-radius: 99px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: none;
+  color: var(--accent, var(--purple));
+  background: color-mix(in srgb, var(--accent, var(--purple)) 13%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent, var(--purple)) 34%, transparent);
+}
+
+.rows { padding: 5px 0; }
+
+.row {
+  display: grid;
+  grid-template-columns: minmax(120px, auto) 1fr;
+  gap: 6px 12px;
+  align-items: baseline;
+  padding: 6px 14px;
+  border-left: 2px solid transparent;
+}
+.row:hover {
+  background: color-mix(in srgb, var(--purple) 7%, transparent);
+  border-left-color: var(--purple);
+}
+/* An author `display` beats the UA stylesheet's [hidden] rule, so the filter
+   needs this explicitly or hiding a row does nothing. */
+.row[hidden], .card[hidden] { display: none; }
+
+.keys { display: flex; flex-wrap: wrap; align-items: center; gap: 3px; }
+
+kbd {
+  display: inline-block;
+  padding: 2px 6px;
+  min-width: 20px;
+  text-align: center;
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.45;
+  color: var(--fg);
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-bottom-width: 2px;
+  border-radius: 5px;
+  white-space: nowrap;
+}
+/* The leader keycap is the one you press hundreds of times a day — it earns
+   its own colour so a leader chord is recognisable at a glance. */
+kbd.leader {
+  color: var(--role-leader);
+  border-color: color-mix(in srgb, var(--role-leader) 42%, transparent);
+  background: color-mix(in srgb, var(--role-leader) 12%, var(--surface-2));
+  cursor: help;
+}
+kbd.ex {
+  color: var(--role-ex);
+  border-color: color-mix(in srgb, var(--role-ex) 42%, transparent);
+  background: color-mix(in srgb, var(--role-ex) 12%, var(--surface-2));
+}
+.sep { color: var(--fg-mute); font-size: 11px; padding: 0 1px; }
+.sep.then { color: var(--fg-mute); font-size: 12px; padding: 0 3px; }
+.desc { color: var(--fg-dim); font-size: 13px; }
+.desc em { color: var(--fg); font-style: normal; }
+
+/* A direct row needs no leader — the fast path. */
+.row.direct .keys kbd:not(.leader):not(.ex) {
+  color: var(--role-direct);
+  border-color: color-mix(in srgb, var(--role-direct) 40%, transparent);
+  background: color-mix(in srgb, var(--role-direct) 11%, var(--surface-2));
+}
+/* A mode row only exists inside insert or visual. */
+.row.mode .keys kbd:not(.leader):not(.ex) {
+  color: var(--role-mode);
+  border-color: color-mix(in srgb, var(--role-mode) 40%, transparent);
+  background: color-mix(in srgb, var(--role-mode) 11%, var(--surface-2));
+}
+.row.danger .desc::after {
+  content: "destructive";
+  margin-left: 8px;
+  padding: 1px 6px;
+  border-radius: 99px;
+  font-size: 10px;
+  color: var(--role-danger);
+  background: color-mix(in srgb, var(--role-danger) 13%, transparent);
+  border: 1px solid color-mix(in srgb, var(--role-danger) 32%, transparent);
+}
+.row.broken .desc::after {
+  content: "broken in this config";
+  margin-left: 8px;
+  padding: 1px 6px;
+  border-radius: 99px;
+  font-size: 10px;
+  color: var(--role-danger);
+  background: color-mix(in srgb, var(--role-danger) 13%, transparent);
+  border: 1px solid color-mix(in srgb, var(--role-danger) 32%, transparent);
+}
+
+.note {
+  margin: 4px 14px 10px;
+  padding: 9px 11px;
+  border-left: 2px solid var(--gold);
+  border-radius: 0 6px 6px 0;
+  background: color-mix(in srgb, var(--gold) 8%, transparent);
+  font-size: 12px;
+  color: var(--fg-dim);
+}
+.note b { color: var(--gold); font-weight: 600; }
+.note.warn { border-left-color: var(--red); background: color-mix(in srgb, var(--red) 8%, transparent); }
+.note.warn b { color: var(--red); }
+
+.empty {
+  display: none;
+  margin-top: 40px;
+  text-align: center;
+  color: var(--fg-dim);
+}
+.empty kbd { margin: 0 2px; }
+body.no-results .empty { display: block; }
+body.no-results .grid { display: none; }
+
+footer {
+  margin-top: 34px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+  font-size: 11.5px;
+  color: var(--fg-mute);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 20px;
+}
+footer code { color: var(--fg-dim); }
+
+@media (max-width: 560px) {
+  .row { grid-template-columns: 1fr; gap: 3px; }
+  .legend { display: none; }
+}
+
+@media print {
+  body { background: #fff; color: #000; padding: 0; }
+  .masthead { position: static; background: none; border-color: #ccc; }
+  .controls, .search-wrap, .empty { display: none; }
+  .grid { columns: 2; }
+  .card { background: none; border-color: #ccc; break-inside: avoid; }
+  .card > h2 { background: none; color: #000; }
+  kbd, kbd.leader, kbd.ex,
+  .row.direct .keys kbd, .row.mode .keys kbd { background: #f2f2f2; color: #000; border-color: #999; }
+  .desc, .note, footer { color: #333; }
+}
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <div class="title-row">
+    <h1>Neovim <span class="accent">Cheatsheet</span></h1>
+    <span class="prefix-note">
+      leader &nbsp;<kbd>space</kbd>
+      &nbsp;&middot;&nbsp; press it, wait half a second, which-key draws the rest
+    </span>
+  </div>
+  <div class="controls">
+    <div class="search-wrap">
+      <span class="search-icon">&#9906;</span>
+      <input id="search" type="search" placeholder="Filter keys…" autocomplete="off" spellcheck="false">
+      <span class="search-hint"><kbd>/</kbd></span>
+    </div>
+    <div class="legend">
+      <span class="sw-direct"><i></i>normal mode, no leader</span>
+      <span class="sw-leader"><i></i>via leader</span>
+      <span class="sw-mode"><i></i>insert / visual only</span>
+      <span class="sw-danger"><i></i>destructive</span>
+    </div>
+  </div>
+</header>
+
+<main class="grid">
+
+  <!-- ── How to read this ── -->
+  <section class="card" style="--accent: var(--gold)">
+    <h2>How to read a binding</h2>
+    <div class="rows">
+      <div class="row"><span class="keys"><kbd>&lt;C-o&gt;</kbd></span><span class="desc">means <em>ctrl + o</em> — never the angle brackets</span></div>
+      <div class="row"><span class="keys"><kbd>&lt;S-h&gt;</kbd></span><span class="desc">means <em>shift + h</em>, i.e. capital H</span></div>
+      <div class="row"><span class="keys"><kbd>&lt;M-j&gt;</kbd></span><span class="desc">means <em>alt + j</em> (M is for Meta)</span></div>
+      <div class="row"><span class="keys"><kbd>&lt;CR&gt;</kbd></span><span class="desc">means <em>enter</em></span></div>
+      <div class="row"><span class="keys"><kbd class="leader" title="space">leader</kbd></span><span class="desc">is the <em>space bar</em> in this config</span></div>
+      <div class="row"><span class="keys"><kbd>g</kbd><kbd>d</kbd></span><span class="desc">two keycaps side by side means <em>press in sequence</em>, not together</span></div>
+    </div>
+    <p class="note"><b>Navigation pairs live on the brackets.</b> <kbd>]</kbd><kbd>x</kbd> / <kbd>[</kbd><kbd>x</kbd>, as in <code>:help</code> and every tutorial. On the latam layout they need Shift. Brace aliases (<kbd>}</kbd><kbd>x</kbd> / <kbd>{</kbd><kbd>x</kbd>) used to save that modifier, but they turned <kbd>{</kbd> and <kbd>}</kbd> into prefixes, which delayed paragraph motion by <code>timeoutlen</code>. A key cannot be a complete mapping and a prefix at once without waiting, so the aliases were removed.</p>
+    <p class="note"><b>The one habit worth building:</b> press <kbd>space</kbd> and wait. which-key lists every group. You do not have to memorise this page — it is here for the twenty keys you use every hour.</p>
+  </section>
+
+  <!-- ── Modes ── -->
+  <section class="card" style="--accent: var(--purple)">
+    <h2>Modes<span class="mode-tag">start here</span></h2>
+    <div class="rows">
+      <div class="row direct"><span class="keys"><kbd>esc</kbd></span><span class="desc">Back to <em>normal</em> mode — and clears search highlight</span></div>
+      <div class="row direct"><span class="keys"><kbd>i</kbd></span><span class="desc">Insert before cursor</span></div>
+      <div class="row direct"><span class="keys"><kbd>a</kbd></span><span class="desc">Insert after cursor</span></div>
+      <div class="row direct"><span class="keys"><kbd>I</kbd></span><span class="desc">Insert at first non-blank of line</span></div>
+      <div class="row direct"><span class="keys"><kbd>A</kbd></span><span class="desc">Insert at end of line</span></div>
+      <div class="row direct"><span class="keys"><kbd>o</kbd></span><span class="desc">Open a new line below and insert</span></div>
+      <div class="row direct"><span class="keys"><kbd>O</kbd></span><span class="desc">Open a new line above and insert</span></div>
+      <div class="row direct"><span class="keys"><kbd>v</kbd></span><span class="desc">Visual — select by character</span></div>
+      <div class="row direct"><span class="keys"><kbd>V</kbd></span><span class="desc">Visual line — select whole lines</span></div>
+      <div class="row direct"><span class="keys"><kbd>&lt;C-v&gt;</kbd></span><span class="desc">Visual block — column selection</span></div>
+      <div class="row mode"><span class="keys"><kbd>&lt;S-←&gt;</kbd><kbd>&lt;S-→&gt;</kbd><kbd>&lt;S-↑&gt;</kbd><kbd>&lt;S-↓&gt;</kbd></span><span class="desc">From insert: start a visual selection (<em>-- (insert) VISUAL --</em>)</span></div>
+      <div class="row direct"><span class="keys"><kbd class="ex">:</kbd></span><span class="desc">Command line, for <em>:w</em>, <em>:q</em>, <em>:%s///</em>&hellip;</span></div>
+    </div>
+    <p class="note">Normal mode is home. Every key is a command there. You visit insert mode to type, then <kbd>esc</kbd> straight back. If a key does something strange, you are probably in the wrong mode — press <kbd>esc</kbd>.</p>
+    <p class="note"><b>Shift+arrow selects without leaving insert.</b> <code>keymodel = "startsel,stopsel"</code> (<code>options.lua</code>) makes Shift+arrow start a visual selection while in insert mode; <kbd>y</kbd>/<kbd>d</kbd>/<kbd>c</kbd> act on it and drop you back in insert. Replaces insert mode's defaults for Shift+Left/Right (word jump, still on Ctrl+←/→) and Shift+Up/Down (page scroll).</p>
+  </section>
+
+  <!-- ── VSCode bridge ── -->
+  <section class="card" style="--accent: var(--mint)">
+    <h2>Coming from VSCode</h2>
+    <div class="rows">
+      <div class="row"><span class="keys"><kbd>ctrl</kbd><span class="sep">+</span><kbd>p</kbd><span class="sep then">→</span><kbd class="leader" title="space">leader</kbd><kbd>space</kbd></span><span class="desc">Find file</span></div>
+      <div class="row"><span class="keys"><kbd>ctrl</kbd><span class="sep">+</span><kbd>shift</kbd><span class="sep">+</span><kbd>f</kbd><span class="sep then">→</span><kbd class="leader" title="space">leader</kbd><kbd>/</kbd></span><span class="desc">Search across the project</span></div>
+      <div class="row"><span class="keys"><kbd>ctrl</kbd><span class="sep">+</span><kbd>tab</kbd><span class="sep then">→</span><kbd class="leader" title="space">leader</kbd><kbd>,</kbd></span><span class="desc">Switch buffer</span></div>
+      <div class="row"><span class="keys"><kbd>ctrl</kbd><span class="sep">+</span><kbd>shift</kbd><span class="sep">+</span><kbd>e</kbd><span class="sep then">→</span><kbd class="leader" title="space">leader</kbd><kbd>e</kbd></span><span class="desc">File explorer</span></div>
+      <div class="row direct"><span class="keys"><kbd>f12</kbd><span class="sep then">→</span><kbd>g</kbd><kbd>d</kbd></span><span class="desc">Go to definition</span></div>
+      <div class="row direct"><span class="keys"><kbd>shift</kbd><span class="sep">+</span><kbd>f12</kbd><span class="sep then">→</span><kbd>g</kbd><kbd>r</kbd></span><span class="desc">Find references</span></div>
+      <div class="row"><span class="keys"><kbd>f2</kbd><span class="sep then">→</span><kbd class="leader" title="space">leader</kbd><kbd>c</kbd><kbd>r</kbd></span><span class="desc">Rename symbol</span></div>
+      <div class="row"><span class="keys"><kbd>ctrl</kbd><span class="sep">+</span><kbd>.</kbd><span class="sep then">→</span><kbd class="leader" title="space">leader</kbd><kbd>c</kbd><kbd>a</kbd></span><span class="desc">Quick fix / code action</span></div>
+      <div class="row direct"><span class="keys"><kbd>ctrl</kbd><span class="sep">+</span><kbd>/</kbd><span class="sep then">→</span><kbd>g</kbd><kbd>c</kbd><kbd>c</kbd></span><span class="desc">Toggle line comment</span></div>
+      <div class="row direct"><span class="keys"><kbd>&lt;C-s&gt;</kbd></span><span class="desc">Save — <em>same key as VSCode</em>, works in insert too</span></div>
+      <div class="row"><span class="keys"><kbd>ctrl</kbd><span class="sep">+</span><kbd>shift</kbd><span class="sep">+</span><kbd>g</kbd><span class="sep then">→</span><kbd class="leader" title="space">leader</kbd><kbd>g</kbd><kbd>g</kbd></span><span class="desc">Git UI (lazygit)</span></div>
+      <div class="row direct"><span class="keys"><kbd>alt</kbd><span class="sep">+</span><kbd>↑</kbd><kbd>↓</kbd><span class="sep then">→</span><kbd>&lt;M-k&gt;</kbd><kbd>&lt;M-j&gt;</kbd></span><span class="desc">Move line up / down</span></div>
+      <div class="row direct"><span class="keys"><kbd>ctrl</kbd><span class="sep">+</span><kbd>`</kbd><span class="sep then">→</span><kbd>&lt;M-t&gt;</kbd></span><span class="desc">Toggle terminal</span></div>
+    </div>
+  </section>
+
+  <!-- ── Undo ── -->
+  <section class="card" style="--accent: var(--red)">
+    <h2>Undo &amp; rescue</h2>
+    <div class="rows">
+      <div class="row direct"><span class="keys"><kbd>u</kbd></span><span class="desc">Undo — <em>this is your ctrl+z</em></span></div>
+      <div class="row direct"><span class="keys"><kbd>&lt;C-r&gt;</kbd></span><span class="desc">Redo</span></div>
+      <div class="row direct"><span class="keys"><kbd>U</kbd></span><span class="desc">Undo every change on the last touched line</span></div>
+      <div class="row"><span class="keys"><kbd class="leader" title="space">leader</kbd><kbd>s</kbd><kbd>u</kbd></span><span class="desc">Undotree — browse the whole undo history visually</span></div>
+      <div class="row"><span class="keys"><kbd class="ex">:</kbd><kbd>earlier 10m</kbd></span><span class="desc">Rewind the buffer to how it looked 10 minutes ago</span></div>
+      <div class="row"><span class="keys"><kbd class="ex">:</kbd><kbd>later 5m</kbd></span><span class="desc">Fast-forward again</span></div>
+      <div class="row danger"><span class="keys"><kbd class="ex">:</kbd><kbd>e!</kbd></span><span class="desc">Reload from disk, throwing away every unsaved change</span></div>
+      <div class="row"><span class="keys"><kbd class="leader" title="space">leader</kbd><kbd>g</kbd><kbd>h</kbd><kbd>r</kbd></span><span class="desc">Reset the hunk under the cursor to its git state</span></div>
+      <div class="row danger"><span class="keys"><kbd class="leader" title="space">leader</kbd><kbd>g</kbd><kbd>h</kbd><kbd>R</kbd></span><span class="desc">Reset the whole buffer to its git state</span></div>
+    </div>
+    <p class="note warn"><b>Ctrl+Z does not undo.</b> In a terminal it suspends nvim and drops you back to the shell. If nvim seems to vanish, type <kbd>fg</kbd> to get it back.</p>
+  </section>
+
+  <!-- ── Save & quit ── -->
+  <section class="card" style="--accent: var(--blue)">
+    <h2>Save &amp; quit</h2>
+    <div class="rows">
+      <div class="row direct"><span class="keys"><kbd>&lt;C-s&gt;</kbd></span><span class="desc">Save</span></div>
+      <div class="row"><span class="keys"><kbd class="ex">:</kbd><kbd>w</kbd></span><span class="desc">Write (save)</span></div>
+      <div class="row"><span class="keys"><kbd class="ex">:</kbd><kbd>q</kbd></span><span class="desc">Quit the window — refuses if there are unsaved changes</span></div>
+      <div class="row"><span class="keys"><kbd class="ex">:</kbd><kbd>wq</kbd></span><span class="desc">Save and quit</span></div>
+      <div class="row danger"><span class="keys"><kbd class="ex">:</kbd><kbd>q!</kbd></span><span class="desc">Quit, discarding unsaved changes</span></div>
+      <div class="row"><span class="keys"><kbd class="leader" title="space">leader</kbd><kbd>q</kbd><kbd>q</kbd></span><span class="desc">Quit everything</span></div>
+      <div class="row"><span class="keys"><kbd class="leader" title="space">leader</kbd><kbd>b</kbd><kbd>d</kbd></span><span class="desc">Close this buffer, keep the window layout</span></div>
+      <div class="row"><span class="keys"><kbd class="leader" title="space">leader</kbd><kbd>f</kbd><kbd>s</kbd></span><span class="desc">Save as — prompts for a path (<kbd>tab</kbd> completes) and renames the buffer</span></div>
+      <div class="row"><span class="keys"><kbd class="ex">:</kbd><kbd>sav path</kbd></span><span class="desc">Same, by hand — writes the file <em>and</em> names the buffer</span></div>
+    </div>
+    <p class="note"><b>An unnamed buffer will not <code>:w</code>.</b> <kbd class="leader">leader</kbd><kbd>f</kbd><kbd>n</kbd> opens an empty, anonymous buffer. Use <kbd class="leader">leader</kbd><kbd>f</kbd><kbd>s</kbd> or <code>:sav path</code>, not <code>:w path</code> — that writes the contents but leaves the buffer unnamed, so the next <code>:w</code> fails again. <kbd class="leader">leader</kbd><kbd>f</kbd><kbd>s</kbd> also creates the parent directory and never overwrites an existing file.</p>
+    <p class="note"><b>Autoformat is on.</b> Saving runs the formatter. That is how a file you only opened ends up with a diff. <kbd class="leader">leader</kbd><kbd>u</kbd><kbd>f</kbd> toggles it globally, <kbd class="leader">leader</kbd><kbd>u</kbd><kbd>F</kbd> for this buffer only.</p>
+  </section>
+
+  <!-- ── Move ── -->
+  <section class="card" style="--accent: var(--mint)">
+    <h2>Move inside a file<span class="mode-tag">normal</span></h2>
+    <div class="rows">
+      <div class="row direct"><span class="keys"><kbd>h</kbd><kbd>j</kbd><kbd>k</kbd><kbd>l</kbd></span><span class="desc">Left / down / up / right</span></div>
+      <div class="row direct"><span class="keys"><kbd>w</kbd><span class="sep">/</span><kbd>b</kbd></span><span class="desc">Forward / back one word</span></div>
+      <div class="row direct"><span class="keys"><kbd>e</kbd></span><span class="desc">To the end of the current word</span></div>
+      <div class="row direct"><span class="keys"><kbd>0</kbd></span><span class="desc">Start of line</span></div>
+      <div class="row direct"><span class="keys"><kbd>^</kbd></span><span class="desc">First non-blank character of line</span></div>
+      <div class="row direct"><span class="keys"><kbd>$</kbd></span><span class="desc">End of line</span></div>
+      <div class="row direct"><span class="keys"><kbd>g</kbd><kbd>g</kbd></span><span class="desc">Top of file</span></div>
+      <div class="row direct"><span class="keys"><kbd>G</kbd></span><span class="desc">Bottom of file</span></div>
+      <div class="row direct"><span class="keys"><kbd>42</kbd><kbd>G</kbd></span><span class="desc">Go to line 42 — any number works</span></div>
+      <div class="row direct"><span class="keys"><kbd>{</kbd><span class="sep">/</span><kbd>}</kbd></span><span class="desc">Previous / next blank-line paragraph</span></div>
+      <div class="row direct"><span class="keys"><kbd>&lt;C-d&gt;</kbd><span class="sep">/</span><kbd>&lt;C-u&gt;</kbd></span><span class="desc">Half a page down / up</span></div>
+      <div class="row direct"><span class="keys"><kbd>%</kbd></span><span class="desc">Jump to the matching bracket</span></div>
+      <div class="row direct"><span class="keys"><kbd>f</kbd><kbd>x</kbd></span><span class="desc">Jump forward to the next <em>x</em> on this line</span></div>
+      <div class="row direct"><span class="keys"><kbd>;</kbd><span class="sep">/</span><kbd>,</kbd></span><span class="desc">Repeat that <em>f</em> jump forward / backward</span></div>
+      <div class="row direct"><span class="keys"><kbd>s</kbd></span><span class="desc">Flash — type 2 chars, jump anywhere on screen</span></div>
+      <div class="row direct"><span class="keys"><kbd>z</kbd><kbd>z</kbd></span><span class="desc">Recentre the screen on the cursor</span></div>
+    </div>
+    <p class="note"><b>Counts multiply everything.</b> <kbd>5</kbd><kbd>j</kbd> is five lines down, <kbd>3</kbd><kbd>w</kbd> three words forward, <kbd>2</kbd><kbd>d</kbd><kbd>d</kbd> deletes two lines.</p>
+  </section>
+
+  <!-- ── Jumps ── -->
+  <section class="card" style="--accent: var(--mint)">
+    <h2>Jump history<span class="mode-tag">the big one</span></h2>
+    <div class="rows">
+      <div class="row direct"><span class="keys"><kbd>&lt;C-o&gt;</kbd></span><span class="desc">Back to where you jumped from — <em>across files</em></span></div>
+      <div class="row direct"><span class="keys"><kbd>&lt;C-i&gt;</kbd></span><span class="desc">Forward again</span></div>
+      <div class="row direct"><span class="keys"><kbd>`</kbd><kbd>`</kbd></span><span class="desc">Back to the exact position before the last jump</span></div>
+      <div class="row direct"><span class="keys"><kbd>&lt;C-^&gt;</kbd></span><span class="desc">Toggle between the two most recent buffers</span></div>
+      <div class="row"><span class="keys"><kbd class="leader" title="space">leader</kbd><kbd>s</kbd><kbd>j</kbd></span><span class="desc">Browse the whole jump list</span></div>
+    </div>
+    <p class="note"><b>This is the key that makes nvim feel navigable.</b> Jump to a definition, read it, <kbd>&lt;C-o&gt;</kbd> and you are back exactly where you were. It is VSCode's alt+← but it works through files, searches and greps alike.</p>
+  </section>
+
+  <!-- ── Edit ── -->
+  <section class="card" style="--accent: var(--gold)">
+    <h2>Edit text</h2>
+    <div class="rows">
+      <div class="row direct"><span class="keys"><kbd>x</kbd></span><span class="desc">Delete the character under the cursor</span></div>
+      <div class="row direct"><span class="keys"><kbd>r</kbd><kbd>x</kbd></span><span class="desc">Replace that one character with <em>x</em></span></div>
+      <div class="row direct"><span class="keys"><kbd>d</kbd><kbd>w</kbd></span><span class="desc">Delete to the end of the word</span></div>
+      <div class="row direct"><span class="keys"><kbd>d</kbd><kbd>d</kbd></span><span class="desc">Delete the whole line</span></div>
+      <div class="row direct"><span class="keys"><kbd>c</kbd><kbd>i</kbd><kbd>w</kbd></span><span class="desc">Change <em>inside word</em> — deletes it and drops you in insert</span></div>
+      <div class="row direct"><span class="keys"><kbd>c</kbd><kbd>i</kbd><kbd>"</kbd></span><span class="desc">Change everything inside the quotes</span></div>
+      <div class="row direct"><span class="keys"><kbd>c</kbd><kbd>i</kbd><kbd>{</kbd></span><span class="desc">Change everything inside the braces</span></div>
+      <div class="row direct"><span class="keys"><kbd>C</kbd></span><span class="desc">Change from cursor to end of line</span></div>
+      <div class="row direct"><span class="keys"><kbd>.</kbd></span><span class="desc">Repeat the last change — <em>learn this one</em></span></div>
+      <div class="row direct"><span class="keys"><kbd>g</kbd><kbd>c</kbd><kbd>c</kbd></span><span class="desc">Toggle comment on this line</span></div>
+      <div class="row mode"><span class="keys"><kbd>g</kbd><kbd>c</kbd></span><span class="desc">Toggle comment on the visual selection</span></div>
+      <div class="row mode"><span class="keys"><kbd>&gt;</kbd><span class="sep">/</span><kbd>&lt;</kbd></span><span class="desc">Indent / outdent the selection</span></div>
+      <div class="row direct"><span class="keys"><kbd>&lt;M-e&gt;</kbd></span><span class="desc">Grow the selection by syntax node (treesitter)</span></div>
+    </div>
+    <p class="note"><b>The grammar:</b> <em>verb + object</em>. <kbd>d</kbd> delete, <kbd>c</kbd> change, <kbd>y</kbd> yank. <kbd>w</kbd> word, <kbd>iw</kbd> inside word, <kbd>i"</kbd> inside quotes, <kbd>ap</kbd> a paragraph. Any verb combines with any object — that is the whole trick.</p>
+  </section>
+
+  <!-- ── Clipboard ── -->
+  <section class="card" style="--accent: var(--gold)">
+    <h2>Copy, cut, paste</h2>
+    <div class="rows">
+      <div class="row direct"><span class="keys"><kbd>y</kbd><kbd>y</kbd></span><span class="desc">Yank (copy) the line</span></div>
+      <div class="row mode"><span class="keys"><kbd>y</kbd></span><span class="desc">Yank the visual selection</span></div>
+      <div class="row direct"><span class="keys"><kbd>p</kbd></span><span class="desc">Paste after the cursor</span></div>
+      <div class="row direct"><span class="keys"><kbd>P</kbd></span><span class="desc">Paste before the cursor</span></div>
+      <div class="row direct"><span class="keys"><kbd>"</kbd><kbd>+</kbd><kbd>y</kbd></span><span class="desc">Yank to the <em>system</em> clipboard</span></div>
+      <div class="row direct"><span class="keys"><kbd>"</kbd><kbd>+</kbd><kbd>p</kbd></span><span class="desc">Paste from the <em>system</em> clipboard</span></div>
+      <div class="row"><span class="keys"><kbd class="leader" title="space">leader</kbd><kbd>s</kbd><kbd>"</kbd></span><span class="desc">Browse every register (nvim has many clipboards)</span></div>
+    </div>
+    <p class="note"><b>Deleting copies.</b> <kbd>d</kbd><kbd>d</kbd> puts the line in the register, so it is a cut, not a delete. That is why pasting after deleting works.</p>
+  </section>
+
+  <!-- ── Search ── -->
+  <section class="card" style="--accent: var(--blue)">
+    <h2>Search &amp; replace</h2>
+    <div class="rows">
+      <div class="row direct"><span class="keys"><kbd>/</kbd><kbd>text</kbd><kbd>&lt;CR&gt;</kbd></span><span class="desc">Search forward in this file</span></div>
+      <div class="row direct"><span class="keys"><kbd>?</kbd><kbd>text</kbd><kbd>&lt;CR&gt;</kbd></span><span class="desc">Search backward</span></div>
+      <div class="row direct"><span class="keys"><kbd>n</kbd><span class="sep">/</span><kbd>N</kbd></span><span class="desc">Next / previous match</span></div>
+      <div class="row direct"><span class="keys"><kbd>*</kbd></span><span class="desc">Search for the word under the cursor</span></div>
+      <div class="row direct"><span class="keys"><kbd>esc</kbd></span><span class="desc">Clear the match highlighting</span></div>
+      <div class="row"><span class="keys"><kbd class="ex">:</kbd><kbd>%s/old/new/g</kbd></span><span class="desc">Replace everywhere in this file</span></div>
+      <div class="row"><span class="keys"><kbd class="ex">:</kbd><kbd>%s/old/new/gc</kbd></span><span class="desc">Same, but confirm each one</span></div>
+      <div class="row"><span class="keys"><kbd class="leader" title="space">leader</kbd><kbd>/</kbd></span><span class="desc">Grep across the whole project</span></div>
+      <div class="row"><span class="keys"><kbd class="leader" title="space">leader</kbd><kbd>s</kbd><kbd>w</kbd></span><span class="desc">Grep the word under the cursor project-wide</span></div>
+      <div class="row"><span class="keys"><kbd class="leader" title="space">leader</kbd><kbd>s</kbd><kbd>r</kbd></span><span class="desc">Search &amp; replace across files (grug-far)</span></div>
+      <div class="row"><span class="keys"><kbd class="leader" title="space">leader</kbd><kbd>s</kbd><kbd>R</kbd></span><span class="desc">Reopen the last picker where you left it</span></div>
+    </div>
+  </section>
+
+  <!-- ── Files & buffers ── -->
+  <section class="card" style="--accent: var(--purple)">
+    <h2>Files &amp; buffers</h2>
+    <div class="rows">
+      <div class="row"><span class="keys"><kbd class="leader" title="space">leader</kbd><kbd>space</kbd></span><span class="desc">Find file in the project root</span></div>
+      <div class="row"><span class="keys"><kbd class="leader" title="space">leader</kbd><kbd>f</kbd><kbd>r</kbd></span><span class="desc">Recent files</span></div>
+      <div class="row"><span class="keys"><kbd class="leader" title="space">leader</kbd><kbd>f</kbd><kbd>g</kbd></span><span class="desc">Find among git-tracked files only</span></div>
+      <div class="row"><span class="keys"><kbd class="leader" title="space">leader</kbd><kbd>,</kbd></span><span class="desc">Switch buffer</span></div>
+      <div class="row"><span class="keys"><kbd class="leader" title="space">leader</kbd><kbd>e</kbd></span><span class="desc">File explorer at the project root</span></div>
+      <div class="row direct"><span class="keys"><kbd>H</kbd><span class="sep">/</span><kbd>L</kbd></span><span class="desc">Previous / next buffer</span></div>
+      <div class="row"><span class="keys"><kbd class="leader" title="space">leader</kbd><kbd>b</kbd><kbd>d</kbd></span><span class="desc">Close this buffer</span></div>
+      <div class="row"><span class="keys"><kbd class="leader" title="space">leader</kbd><kbd>f</kbd><kbd>n</kbd></span><span class="desc">New file (unnamed — save it with <kbd class="leader">leader</kbd><kbd>f</kbd><kbd>s</kbd>)</span></div>
+      <div class="row"><span class="keys"><kbd class="leader" title="space">leader</kbd><kbd>f</kbd><kbd>s</kbd></span><span class="desc">Save as / give the buffer a name</span></div>
+      <div class="row"><span class="keys"><kbd class="leader" title="space">leader</kbd><kbd>f</kbd><kbd>c</kbd></span><span class="desc">Jump into your own nvim config</span></div>
+      <div class="row"><span class="keys"><kbd class="leader" title="space">leader</kbd><kbd>f</kbd><kbd>p</kbd></span><span class="desc">Switch project</span></div>
+      <div class="row"><span class="keys"><kbd class="leader" title="space">leader</kbd><kbd>f</kbd><kbd>y</kbd></span><span class="desc">Copy this file's <em>relative</em> path to the clipboard</span></div>
+      <div class="row"><span class="keys"><kbd class="leader" title="space">leader</kbd><kbd>f</kbd><kbd>Y</kbd></span><span class="desc">Copy this file's <em>absolute</em> path to the clipboard</span></div>
+      <div class="row direct"><span class="keys"><kbd>g</kbd><kbd>x</kbd></span><span class="desc">Open the URL or path under the cursor in the system app</span></div>
+      <div class="row"><span class="keys"><kbd class="ex">:</kbd><kbd>ls!</kbd></span><span class="desc">List <em>every</em> buffer, including hidden and unloaded ones</span></div>
+      <div class="row danger"><span class="keys"><kbd class="ex">:</kbd><kbd>bwipeout 7</kbd></span><span class="desc">Wipe buffer 7 completely (<code>:bd</code> only unloads it)</span></div>
+    </div>
+    <p class="note">Inside any picker: type to filter, <kbd>&lt;C-j&gt;</kbd><kbd>&lt;C-k&gt;</kbd> or arrows to move, <kbd>&lt;CR&gt;</kbd> to open, <kbd>&lt;C-v&gt;</kbd> to open in a vertical split, <kbd>esc</kbd> to close.</p>
+  </section>
+
+  <!-- ── LSP ── -->
+  <section class="card" style="--accent: var(--purple)">
+    <h2>Code intelligence<span class="mode-tag">LSP</span></h2>
+    <div class="rows">
+      <div class="row direct"><span class="keys"><kbd>g</kbd><kbd>d</kbd></span><span class="desc">Go to definition</span></div>
+      <div class="row direct"><span class="keys"><kbd>g</kbd><kbd>r</kbd></span><span class="desc">Find references</span></div>
+      <div class="row direct"><span class="keys"><kbd>g</kbd><kbd>I</kbd></span><span class="desc">Go to implementation</span></div>
+      <div class="row direct"><span class="keys"><kbd>g</kbd><kbd>y</kbd></span><span class="desc">Go to type definition</span></div>
+      <div class="row direct"><span class="keys"><kbd>K</kbd></span><span class="desc">Hover docs for the symbol under the cursor</span></div>
+      <div class="row direct"><span class="keys"><kbd>g</kbd><kbd>K</kbd></span><span class="desc">Signature help</span></div>
+      <div class="row"><span class="keys"><kbd class="leader" title="space">leader</kbd><kbd>c</kbd><kbd>a</kbd></span><span class="desc">Code action / quick fix</span></div>
+      <div class="row"><span class="keys"><kbd class="leader" title="space">leader</kbd><kbd>c</kbd><kbd>r</kbd></span><span class="desc">Rename symbol everywhere</span></div>
+      <div class="row"><span class="keys"><kbd class="leader" title="space">leader</kbd><kbd>c</kbd><kbd>R</kbd></span><span class="desc">Rename the file and fix every import</span></div>
+      <div class="row"><span class="keys"><kbd class="leader" title="space">leader</kbd><kbd>c</kbd><kbd>o</kbd></span><span class="desc">Organize imports</span></div>
+      <div class="row"><span class="keys"><kbd class="leader" title="space">leader</kbd><kbd>c</kbd><kbd>M</kbd></span><span class="desc">Add every missing import</span></div>
+      <div class="row"><span class="keys"><kbd class="leader" title="space">leader</kbd><kbd>c</kbd><kbd>f</kbd></span><span class="desc">Format the buffer now</span></div>
+      <div class="row"><span class="keys"><kbd class="leader" title="space">leader</kbd><kbd>s</kbd><kbd>s</kbd></span><span class="desc">Jump to a symbol in this file</span></div>
+      <div class="row"><span class="keys"><kbd class="leader" title="space">leader</kbd><kbd>c</kbd><kbd>l</kbd></span><span class="desc">Which LSP servers are attached here</span></div>
+      <div class="row direct"><span class="keys"><kbd>]</kbd><kbd>f</kbd><span class="sep">/</span><kbd>[</kbd><kbd>f</kbd></span><span class="desc">Next / previous function</span></div>
+      <div class="row direct"><span class="keys"><kbd>]</kbd><kbd>c</kbd><span class="sep">/</span><kbd>[</kbd><kbd>c</kbd></span><span class="desc">Next / previous class</span></div>
+      <div class="row direct"><span class="keys"><kbd>]</kbd><kbd>]</kbd><span class="sep">/</span><kbd>[</kbd><kbd>[</kbd></span><span class="desc">Next / previous reference of this symbol</span></div>
+    </div>
+  </section>
+
+  <!-- ── Diagnostics ── -->
+  <section class="card" style="--accent: var(--red)">
+    <h2>Errors &amp; warnings</h2>
+    <div class="rows">
+      <div class="row direct"><span class="keys"><kbd>]</kbd><kbd>d</kbd><span class="sep">/</span><kbd>[</kbd><kbd>d</kbd></span><span class="desc">Next / previous diagnostic</span></div>
+      <div class="row direct"><span class="keys"><kbd>]</kbd><kbd>e</kbd><span class="sep">/</span><kbd>[</kbd><kbd>e</kbd></span><span class="desc">Next / previous <em>error</em> only</span></div>
+      <div class="row direct"><span class="keys"><kbd>]</kbd><kbd>w</kbd><span class="sep">/</span><kbd>[</kbd><kbd>w</kbd></span><span class="desc">Next / previous <em>warning</em> only</span></div>
+      <div class="row"><span class="keys"><kbd class="leader" title="space">leader</kbd><kbd>c</kbd><kbd>d</kbd></span><span class="desc">Show the diagnostic on this line in full</span></div>
+      <div class="row"><span class="keys"><kbd class="leader" title="space">leader</kbd><kbd>x</kbd><kbd>x</kbd></span><span class="desc">Every diagnostic in the project (Trouble)</span></div>
+      <div class="row"><span class="keys"><kbd class="leader" title="space">leader</kbd><kbd>x</kbd><kbd>X</kbd></span><span class="desc">Diagnostics for this buffer only</span></div>
+      <div class="row"><span class="keys"><kbd class="leader" title="space">leader</kbd><kbd>c</kbd><kbd>D</kbd></span><span class="desc">Ask the LSP to fix everything it can</span></div>
+      <div class="row"><span class="keys"><kbd class="leader" title="space">leader</kbd><kbd>x</kbd><kbd>t</kbd></span><span class="desc">Every TODO / FIXME in the project</span></div>
+    </div>
+  </section>
+
+  <!-- ── Git ── -->
+  <section class="card" style="--accent: var(--pink)">
+    <h2>Git</h2>
+    <div class="rows">
+      <div class="row"><span class="keys"><kbd class="leader" title="space">leader</kbd><kbd>g</kbd><kbd>g</kbd></span><span class="desc">Open lazygit — stage, commit, branch, everything</span></div>
+      <div class="row direct"><span class="keys"><kbd>]</kbd><kbd>h</kbd><span class="sep">/</span><kbd>[</kbd><kbd>h</kbd></span><span class="desc">Next / previous changed hunk</span></div>
+      <div class="row"><span class="keys"><kbd class="leader" title="space">leader</kbd><kbd>g</kbd><kbd>h</kbd><kbd>p</kbd></span><span class="desc">Preview the hunk inline</span></div>
+      <div class="row"><span class="keys"><kbd class="leader" title="space">leader</kbd><kbd>g</kbd><kbd>h</kbd><kbd>s</kbd></span><span class="desc">Stage the hunk under the cursor</span></div>
+      <div class="row danger"><span class="keys"><kbd class="leader" title="space">leader</kbd><kbd>g</kbd><kbd>h</kbd><kbd>r</kbd></span><span class="desc">Discard the hunk under the cursor</span></div>
+      <div class="row"><span class="keys"><kbd class="leader" title="space">leader</kbd><kbd>g</kbd><kbd>h</kbd><kbd>b</kbd></span><span class="desc">Blame this line (gitsigns popup)</span></div>
+      <div class="row"><span class="keys"><kbd class="leader" title="space">leader</kbd><kbd>g</kbd><kbd>h</kbd><kbd>d</kbd></span><span class="desc">Diff this file against HEAD</span></div>
+      <div class="row"><span class="keys"><kbd class="leader" title="space">leader</kbd><kbd>g</kbd><kbd>s</kbd></span><span class="desc">Git status picker</span></div>
+      <div class="row"><span class="keys"><kbd class="leader" title="space">leader</kbd><kbd>g</kbd><kbd>l</kbd></span><span class="desc">Git log</span></div>
+      <div class="row"><span class="keys"><kbd class="leader" title="space">leader</kbd><kbd>g</kbd><kbd>f</kbd></span><span class="desc">History of the current file</span></div>
+      <div class="row"><span class="keys"><kbd class="leader" title="space">leader</kbd><kbd>g</kbd><kbd>b</kbd></span><span class="desc">Toggle permanent inline blame at end of every line (git-blame.nvim)</span></div>
+      <div class="row"><span class="keys"><kbd class="leader" title="space">leader</kbd><kbd>g</kbd><kbd>u</kbd></span><span class="desc">Open the commit URL for the current line (git-blame.nvim)</span></div>
+    </div>
+    <p class="note"><b><kbd class="leader">leader</kbd><kbd>g</kbd><kbd>h</kbd><kbd>b</kbd> vs <kbd class="leader">leader</kbd><kbd>g</kbd><kbd>b</kbd>.</b> Two different plugins. <em>ghb</em> (gitsigns) shows the current line's blame in a popup, on demand. <em>gb</em> (git-blame.nvim) toggles a permanent blame pinned to the end of every line, and starts disabled (<code>enabled = false</code>).</p>
+  </section>
+
+  <!-- ── AI ── -->
+  <section class="card" style="--accent: var(--purple)">
+    <h2>Copilot</h2>
+    <div class="rows">
+      <div class="row mode"><span class="keys"><kbd>&lt;M-l&gt;</kbd></span><span class="desc">Accept the ghost-text suggestion</span></div>
+      <div class="row mode"><span class="keys"><kbd>&lt;M-}&gt;</kbd><span class="sep">/</span><kbd>&lt;M-{&gt;</kbd></span><span class="desc">Cycle to the next / previous suggestion</span></div>
+      <div class="row mode"><span class="keys"><kbd>&lt;M-c&gt;</kbd></span><span class="desc">Dismiss the suggestion</span></div>
+      <div class="row"><span class="keys"><kbd class="leader" title="space">leader</kbd><kbd>a</kbd><kbd>a</kbd></span><span class="desc">CopilotChat in a floating window</span></div>
+      <div class="row"><span class="keys"><kbd class="leader" title="space">leader</kbd><kbd>a</kbd><kbd>e</kbd></span><span class="desc">CopilotChat: explain the selected code</span></div>
+    </div>
+    <p class="note"><b>The completion menu.</b> It opens by itself as you type. <kbd>&lt;C-n&gt;</kbd> forces it open (and moves down once open), <kbd>&lt;C-p&gt;</kbd> moves up, <kbd>&lt;CR&gt;</kbd> accepts, <kbd>&lt;C-e&gt;</kbd> closes it, <kbd>&lt;C-k&gt;</kbd> shows the signature. blink's own default for forcing it open is <kbd>&lt;C-space&gt;</kbd>, but that is herdr's prefix — it never reaches nvim inside herdr, which is why it lives on <kbd>&lt;C-n&gt;</kbd> here. Same reason treesitter's grow-selection moved to <kbd>&lt;M-e&gt;</kbd>.</p>
+    <p class="note"><b>Ghost text, not a menu.</b> Copilot suggests inline in grey as you type; <kbd>&lt;M-l&gt;</kbd> takes it. It deliberately stays out of the blink.cmp menu, which is reserved for the LSP. Chat lives under <kbd class="leader">leader</kbd><kbd>a</kbd> because <kbd class="leader">leader</kbd><kbd>c</kbd> is LazyVim's <em>code</em> group.</p>
+    <p class="note"><b>Braces, not brackets.</b> Cycling uses <kbd>&lt;M-{&gt;</kbd> and <kbd>&lt;M-}&gt;</kbd> rather than copilot's default <kbd>&lt;M-[&gt;</kbd> / <kbd>&lt;M-]&gt;</kbd>: on the es-latam layout the braces are the unshifted characters, so the defaults would cost an extra Shift every time.</p>
+  </section>
+
+  <!-- ── Windows ── -->
+  <section class="card" style="--accent: var(--blue)">
+    <h2>Windows &amp; splits</h2>
+    <div class="rows">
+      <div class="row"><span class="keys"><kbd class="leader" title="space">leader</kbd><kbd>|</kbd></span><span class="desc">Split vertically (side by side)</span></div>
+      <div class="row"><span class="keys"><kbd class="leader" title="space">leader</kbd><kbd>-</kbd></span><span class="desc">Split horizontally (one above the other)</span></div>
+      <div class="row direct"><span class="keys"><kbd>&lt;C-h&gt;</kbd><kbd>&lt;C-j&gt;</kbd><kbd>&lt;C-k&gt;</kbd><kbd>&lt;C-l&gt;</kbd></span><span class="desc">Move focus left / down / up / right</span></div>
+      <div class="row direct"><span class="keys"><kbd>&lt;C-↑&gt;</kbd><kbd>&lt;C-↓&gt;</kbd><kbd>&lt;C-←&gt;</kbd><kbd>&lt;C-→&gt;</kbd></span><span class="desc">Resize the focused window</span></div>
+      <div class="row"><span class="keys"><kbd class="leader" title="space">leader</kbd><kbd>w</kbd><kbd>d</kbd></span><span class="desc">Close this window</span></div>
+      <div class="row direct"><span class="keys"><kbd>&lt;C-w&gt;</kbd></span><span class="desc">Window hydra — hold it and keep pressing to resize and move</span></div>
+    </div>
+    <p class="note warn"><b>Three alt keys are contested.</b> nvim uses <kbd>&lt;M-j&gt;</kbd> / <kbd>&lt;M-k&gt;</kbd> to move a line and <kbd>&lt;M-l&gt;</kbd> to accept a Copilot suggestion, while herdr uses the same <kbd>alt</kbd>+<kbd>j</kbd> / <kbd>k</kbd> / <kbd>l</kbd> to move between panes. With a single pane they appear to work. Split with <kbd>alt</kbd>+<kbd>v</kbd> and retest before trusting them; herdr also answers on <kbd>prefix</kbd>+<kbd>h</kbd><kbd>j</kbd><kbd>k</kbd><kbd>l</kbd>.</p>
+    <p class="note"><b>Splits vs herdr panes.</b> These split <em>inside</em> nvim and share its LSP and buffers. herdr's <kbd>alt</kbd><span class="sep">+</span><kbd>v</kbd> splits the terminal itself. Same idea, different level — use nvim splits for code, herdr panes for separate programs.</p>
+  </section>
+
+  <!-- ── Terminal ── -->
+  <section class="card" style="--accent: var(--mint)">
+    <h2>Terminal<span class="mode-tag">like VSCode</span></h2>
+    <div class="rows">
+      <div class="row direct"><span class="keys"><kbd>&lt;M-t&gt;</kbd></span><span class="desc">Toggle a terminal at the bottom — press again to hide it</span></div>
+      <div class="row"><span class="keys"><kbd class="leader" title="space">leader</kbd><kbd>f</kbd><kbd>t</kbd></span><span class="desc">Same terminal, at the project root</span></div>
+      <div class="row"><span class="keys"><kbd class="leader" title="space">leader</kbd><kbd>f</kbd><kbd>T</kbd></span><span class="desc">Terminal at the current file's directory</span></div>
+      <div class="row mode"><span class="keys"><kbd>esc</kbd><kbd>esc</kbd></span><span class="desc">Terminal mode &rarr; normal mode, so you can scroll and yank</span></div>
+      <div class="row direct"><span class="keys"><kbd>q</kbd></span><span class="desc">Hide the terminal (from normal mode, after the double esc)</span></div>
+      <div class="row direct"><span class="keys"><kbd>i</kbd></span><span class="desc">Back into terminal mode, to type again</span></div>
+      <div class="row direct"><span class="keys"><kbd>g</kbd><kbd>f</kbd></span><span class="desc">Open the file under the cursor — works on stack traces</span></div>
+      <div class="row direct"><span class="keys"><kbd>&lt;C-\&gt;</kbd><kbd>&lt;C-n&gt;</kbd></span><span class="desc">The always-works escape from any terminal, including <code>:terminal</code></span></div>
+    </div>
+    <p class="note"><b>The two modes are the whole trick.</b> A terminal buffer starts in <em>terminal mode</em>, where every key goes to the shell — that is why you could not get out. Double <kbd>esc</kbd> puts you in <em>normal mode</em>, where the buffer behaves like any other file: <kbd>j</kbd><kbd>k</kbd> scroll, <kbd>y</kbd> yanks, <kbd>/</kbd> searches. <kbd>i</kbd> goes back in.</p>
+    <p class="note"><b>Why not <kbd>&lt;C-/&gt;</kbd>.</b> That is LazyVim's default and it is still mapped, but on the latam layout <kbd>/</kbd> is <kbd>shift</kbd>+<kbd>7</kbd>, so <kbd>ctrl</kbd>+<kbd>/</kbd> is really ctrl+shift+7 and the terminal never sends the <code>^_</code> byte nvim is waiting for. <kbd>&lt;M-t&gt;</kbd> is an alias to the same toggle.</p>
+    <p class="note"><b>Prefer this over <code>:terminal</code>.</b> The bare <code>:terminal</code> command opens a plain buffer with none of these keys — no <kbd>q</kbd>, no <kbd>g</kbd><kbd>f</kbd>, no toggle. The double <kbd>esc</kbd> does work there now, but everything else is missing.</p>
+  </section>
+
+  <!-- ── Session ── -->
+  <section class="card" style="--accent: var(--gold)">
+    <h2>Session &amp; misc</h2>
+    <div class="rows">
+      <div class="row"><span class="keys"><kbd class="leader" title="space">leader</kbd><kbd>q</kbd><kbd>s</kbd></span><span class="desc">Restore the session for this directory</span></div>
+      <div class="row"><span class="keys"><kbd class="leader" title="space">leader</kbd><kbd>q</kbd><kbd>l</kbd></span><span class="desc">Restore the last session, whichever it was</span></div>
+      <div class="row"><span class="keys"><kbd class="leader" title="space">leader</kbd><kbd>.</kbd></span><span class="desc">Toggle a scratch buffer for throwaway notes</span></div>
+      <div class="row"><span class="keys"><kbd class="leader" title="space">leader</kbd><kbd>?</kbd></span><span class="desc">Every key active in <em>this</em> buffer</span></div>
+      <div class="row"><span class="keys"><kbd class="leader" title="space">leader</kbd><kbd>s</kbd><kbd>k</kbd></span><span class="desc">Search all keymaps</span></div>
+      <div class="row"><span class="keys"><kbd class="leader" title="space">leader</kbd><kbd>l</kbd></span><span class="desc">Lazy — plugin manager UI</span></div>
+      <div class="row"><span class="keys"><kbd class="leader" title="space">leader</kbd><kbd>c</kbd><kbd>m</kbd></span><span class="desc">Mason — LSP / formatter / linter installer</span></div>
+      <div class="row"><span class="keys"><kbd class="leader" title="space">leader</kbd><kbd>u</kbd><kbd>f</kbd></span><span class="desc">Toggle format-on-save globally</span></div>
+      <div class="row"><span class="keys"><kbd class="leader" title="space">leader</kbd><kbd>u</kbd><kbd>C</kbd></span><span class="desc">Preview colorschemes live</span></div>
+      <div class="row"><span class="keys"><kbd class="leader" title="space">leader</kbd><kbd>m</kbd><kbd>d</kbd></span><span class="desc">Markdown: open the mermaid diagram under the cursor in a new tab</span></div>
+      <div class="row"><span class="keys"><kbd class="ex">:</kbd><kbd>checkhealth</kbd></span><span class="desc">Diagnose what is broken in the setup</span></div>
+    </div>
+    <p class="note"><b>Mermaid diagrams draw themselves</b> when you enter the buffer and when you leave insert mode, not on every keystroke. If a tall one pushes the rest off screen and they never appear, <kbd class="leader">leader</kbd><kbd>m</kbd><kbd>d</kbd> opens it on its own.</p>
+  </section>
+
+  <!-- ── Traps ── -->
+  <section class="card" style="--accent: var(--red)">
+    <h2>Traps worth knowing</h2>
+    <div class="rows">
+      <div class="row"><span class="keys"><kbd>ctrl</kbd><span class="sep">+</span><kbd>z</kbd></span><span class="desc">Suspends nvim to the background. <em>fg</em> brings it back — it is not undo</span></div>
+      <div class="row"><span class="keys"><kbd>s</kbd></span><span class="desc">Is Flash here, not substitute. Use <em>cl</em> for the old behaviour</span></div>
+      <div class="row"><span class="keys"><kbd class="ex">:</kbd><kbd>w</kbd></span><span class="desc">Runs the formatter. An untouched file can still end up with a diff</span></div>
+      <div class="row"><span class="keys"><kbd class="leader" title="space">leader</kbd><kbd>e</kbd></span><span class="desc">Toggles the tree — from a file it <em>closes</em> it. Use <kbd>&lt;C-h&gt;</kbd> to focus it instead</span></div>
+      <div class="row direct"><span class="keys"><kbd>}</kbd></span><span class="desc">Jumps to the next BLANK line, not the next block. Two blank lines in a row take two presses</span></div>
+      <div class="row"><span class="keys"><kbd>&lt;C-i&gt;</kbd></span><span class="desc">Is the same byte as <em>tab</em> — rebinding one rebinds the other</span></div>
+      <div class="row"><span class="keys"><kbd>E139</kbd></span><span class="desc">The file is already in another buffer, maybe hidden. <em>:ls!</em> to find it, <em>:bwipeout &lt;n&gt;</em> to free it</span></div>
+      <div class="row"><span class="keys"><kbd class="ex">:</kbd><kbd>w path</kbd></span><span class="desc">On an unnamed buffer it writes but does not name it. Use <kbd class="leader">leader</kbd><kbd>f</kbd><kbd>s</kbd></span></div>
+      <div class="row"><span class="keys"><kbd>esc</kbd></span><span class="desc">When lost, press it twice. Then <em>u</em> to undo whatever happened</span></div>
+    </div>
+  </section>
+
+</main>
+
+<p class="empty">Nothing matches that. <kbd>esc</kbd> to clear.</p>
+
+<footer>
+  <span>Neovim 0.12.5 &middot; LazyVim stable &middot; tokyonight-moon</span>
+  <span><code>~/.config/nvim</code></span>
+  <span>Verified against the running config, not from memory</span>
+</footer>
+
+<script>
+const search = document.getElementById('search');
+const rows = [...document.querySelectorAll('.row')];
+const cards = [...document.querySelectorAll('.card')];
+
+// Index once: keys are read from the kbd text so the search matches what you see.
+for (const row of rows) {
+  const keys = [...row.querySelectorAll('kbd')].map(k => k.textContent).join(' ');
+  const card = row.closest('.card').querySelector('h2').textContent;
+  // Vim notation is written <C-o> but people search for "ctrl o". Index both.
+  const expanded = keys
+    .replace(/<C-/g, 'ctrl ').replace(/<S-/g, 'shift ')
+    .replace(/<M-/g, 'alt ').replace(/<A-/g, 'alt ')
+    .replace(/[<>]/g, ' ');
+  row.dataset.hay = `${keys} ${expanded} ${row.querySelector('.desc').textContent} ${card}`.toLowerCase();
+}
+
+function applyFilter(raw) {
+  // '+' splits like whitespace, so typing a chord the way you press it
+  // ("ctrl+o") matches a row indexed as "ctrl o".
+  const terms = raw.toLowerCase().split(/[\s+]+/).filter(Boolean);
+  let hits = 0;
+
+  for (const row of rows) {
+    const show = terms.every(t => row.dataset.hay.includes(t));
+    row.hidden = !show;
+    if (show) hits++;
+  }
+  // Hide a card once every row inside it is filtered out.
+  for (const card of cards) {
+    card.hidden = !card.querySelector('.row:not([hidden])');
+  }
+  document.body.classList.toggle('no-results', terms.length > 0 && hits === 0);
+}
+
+search.addEventListener('input', () => applyFilter(search.value));
+
+document.addEventListener('keydown', e => {
+  if (e.key === '/' && document.activeElement !== search) {
+    e.preventDefault();
+    search.focus();
+    search.select();
+  } else if (e.key === 'Escape') {
+    search.value = '';
+    applyFilter('');
+    search.blur();
+  }
+});
+</script>
+
+</body>
+</html>
